@@ -1,5 +1,10 @@
 package main
 
+import (
+	"sort"
+	"strings"
+)
+
 /*
 === Поиск анаграмм по словарю ===
 
@@ -19,6 +24,53 @@ package main
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
-func main() {
+// FindAnagrams
+func FindAnagrams(words []string) map[string][]string {
+	anagrams := make(map[string][]string)
+	// Проходим по каждому слову в словаре
+	for _, word := range words {
+		// Приводим слово к нижнему регистру и сортируем его символы
+		word := strings.ToLower(word)
+		sortedWord := sortWord(word)
+		// Добавляем отсортированное слово в мапу анаграмм
+		// Если уже есть множество анаграмм с таким ключом, добавляем слово в массив анаграмм
+		// Если множества анаграмм с таким ключом не существует, создаем новое множество и добавляем его в мапу
+		if _, ok := anagrams[sortedWord]; !ok {
+			anagrams[sortedWord] = []string{}
+		}
 
+		// Проверяем, что слово еще не добавлено в массив анаграмм
+		alreadyAdded := false
+		for _, w := range anagrams[sortedWord] {
+			if w == word {
+				alreadyAdded = true
+				break
+			}
+		}
+
+		// Если слово не дублируется, добавляем его в массив анаграмм
+		if !alreadyAdded {
+			anagrams[sortedWord] = append(anagrams[sortedWord], word)
+		}
+	}
+
+	// Удаляем множества анаграмм из одного элемента
+	for key, value := range anagrams {
+		if len(value) <= 1 {
+			delete(anagrams, key)
+		}
+	}
+
+	return anagrams
+}
+
+// Функция для сортировки символов в строке
+
+func sortWord(s string) string {
+	// Преобразуем строку в массив символов
+	char := strings.Split(s, "")
+	// Сортируем символы в массиве
+	sort.Strings(char)
+	// Склеиваем символы обратно в строку
+	return strings.Join(char, "")
 }
