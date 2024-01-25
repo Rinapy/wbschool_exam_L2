@@ -28,7 +28,7 @@ import (
 var ErrIncorrectString = errors.New("incorrect string passed")
 
 /*
-UnzipStr функция производит распаковку переданной строки Примеры:
+UnzipStr функция производит распаковку переданной строки.
 Примеры работы функции:
 - "a4bc2d5e" => "aaaabccddddde", nil
 - "abcd" => "abcd", nil
