@@ -2,4 +2,4 @@
 1 banan 1
 223 6 4
 3 apple 8
-1 23 200
+1 apple 200

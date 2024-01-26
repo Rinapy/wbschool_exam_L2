@@ -50,7 +50,7 @@ func UnzipStr(s string) (string, error) {
 			return "", ErrIncorrectString
 		} // Если первая в строке руна цифра - кидаемся ошибкой
 		isBackSlash := r == backSlash
-		isUnescapedPrevDigit := unicode.IsDigit(prevRune) && !isEscaped // Если встречаем цифру которая не была экранирована ставим false
+		isUnescapedPrevDigit := unicode.IsDigit(prevRune) && !isEscaped // Если встречаем цифру, которая не была экранирована ставим false
 		twoUnescapedDigitsInRow := isDigit && isUnescapedPrevDigit      // Если встречаем цифру и прошлая цифра не была экранирована делаем True
 
 		if twoUnescapedDigitsInRow {
