@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -42,6 +42,11 @@ var (
 	n, r, u   bool
 	inputFile string
 )
+var ErrCloseFile = errors.New("не удалось закрыть файл")
+var ErrOpenFile = errors.New("не удалось открыть файл")
+var ErrReadFile = errors.New("не удалось прочитать файл или строку")
+var ErrWriteFile = errors.New("не удалось прочитать файл или строку")
+var ErrIndexFile = errors.New("в файле нет колонки с таким индексом")
 
 type Line struct {
 	Fields []string
@@ -86,72 +91,81 @@ func (ls *LineSlice) Swap(i, j int) {
 
 func (ls *LineSlice) delDuplicate() {
 	seenLines := map[string]bool{}
-	for i, line := range *ls {
+	for i := len(*ls) - 1; i >= 0; i-- {
+		line := (*ls)[i]
 		if !seenLines[line.Fields[k]] {
 			seenLines[line.Fields[k]] = true
 		} else {
-			(*ls)[i] = (*ls)[ls.Len()-1]
-			*ls = (*ls)[:ls.Len()-1]
+			(*ls)[i] = (*ls)[len(*ls)-1]
+			*ls = (*ls)[:len(*ls)-1]
 		}
 	}
 }
 
-func Sorter() {
+func Sorter() (*LineSlice, error) {
+	parseFlags()
+	lines, err := fillLineSlice(inputFile)
+	if k > lines.Len() {
+		return nil, ErrIndexFile
+	}
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	if u {
+		lines.delDuplicate()
+	}
+	sort.Sort(lines)
+	err = fillNewFile(lines)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return lines, nil
+}
+
+func parseFlags() string {
 	flag.IntVar(&k, "k", 0, "Индекс колонки по которой будет сортировка, колонка 1 == 0 2 == 1 и т.д")
 	flag.BoolVar(&n, "n", false, "Сортировать по числам, при вхождении в колонку текстовых значений, они будут выноситься вверх")
 	flag.BoolVar(&r, "r", false, "Сортировать по убыванию, при вхождении в колонку текстовых значений, они будут выноситься вверх")
 	flag.BoolVar(&u, "u", false, "Удаляет дубликат в колонке")
 	flag.Parse()
 	inputFile = flag.Arg(0)
-
-	fmt.Println(n)
-	lines := fillLineSlice(inputFile)
-	if u {
-		lines.delDuplicate()
-	}
-	sort.Sort(lines)
-	fillNewFile(lines)
-	//	for _, line := range *lines {
-	//		fmt.Println(&line.Fields)
-	//	}
+	return inputFile
 }
 
-func fillNewFile(slice *LineSlice) {
+func fillNewFile(slice *LineSlice) error {
 	file, err := os.Create("output.txt")
 	defer func(file *os.File) {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(ErrCloseFile)
 		}
 	}(file)
 	if err != nil {
-		log.Fatal(err)
+		return ErrOpenFile
 	}
 	writer := bufio.NewWriter(file)
 	defer func(writer *bufio.Writer) {
-		err := writer.Flush()
+		err = writer.Flush()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(ErrWriteFile)
 		}
 	}(writer)
 	for _, v := range *slice {
-		_, err := writer.WriteString(strings.Join(v.Fields, " ") + "\n")
+		_, err = writer.WriteString(strings.Join(v.Fields, " ") + "\n")
 		if err != nil {
-			log.Fatal(err)
+			return ErrWriteFile
 		}
 	}
+	return nil
 }
 
-func fillLineSlice(filename string) *LineSlice {
+func fillLineSlice(filename string) (*LineSlice, error) {
 	file, err := os.Open(filename)
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(file)
+	defer file.Close()
 	if err != nil {
-		log.Fatal(err)
+		return &LineSlice{}, ErrOpenFile
 	}
 	reader := bufio.NewReader(file)
 	lineSlice := make(LineSlice, 0)
@@ -160,11 +174,14 @@ func fillLineSlice(filename string) *LineSlice {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Println(err)
+			log.Println(ErrReadFile)
 		}
 
 		line := Line{strings.Fields(lineText)}
 		lineSlice = append(lineSlice, line)
 	}
-	return &lineSlice
+	return &lineSlice, nil
+}
+func main() {
+	Sorter()
 }
