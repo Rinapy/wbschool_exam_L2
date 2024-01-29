@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,14 +31,17 @@ import (
 */
 
 var (
-	A int
-	B int
-	C int
-	c bool
-	i bool
-	v bool
-	F bool
-	n bool
+	A             int
+	B             int
+	C             int
+	c             bool
+	i             bool
+	v             bool
+	F             bool
+	n             bool
+	searchStr     string
+	nameOrPattern string
+	ErrFindFiles  = errors.New("ошибка поиска файла или файлов")
 )
 
 type Line struct {
@@ -53,7 +58,21 @@ type File struct {
 
 type FileSlice []File
 
-func parseNameOrPattern(arg string) []string {
+func parseFlags() {
+	flag.IntVar(&A, "A", 0, "\"after\" печатать +N строк после совпадения")
+	flag.IntVar(&B, "B", 0, "\"before\" печатать +N строк до совпадения")
+	flag.IntVar(&C, "C", 0, "\"context\" (A+B) печатать ±N строк вокруг совпадения")
+	flag.BoolVar(&c, "c", false, "\"count\" (количество строк)")
+	flag.BoolVar(&i, "i", false, "\"ignore-case\" (игнорировать регистр)")
+	flag.BoolVar(&v, "v", false, "\"invert\" (вместо совпадения, исключать)")
+	flag.BoolVar(&F, "F", false, "\"fixed\", точное совпадение со строкой, не паттерн")
+	flag.BoolVar(&n, "n", false, "\"line num\", печатать номер строки")
+	flag.Parse()
+	nameOrPattern = flag.Arg(1)
+	searchStr = flag.Arg(0)
+}
+
+func parseNameOrPattern(arg string) ([]string, error) {
 	fs := make([]string, 0)
 	isPattern := false
 	for _, val := range arg {
@@ -64,32 +83,26 @@ func parseNameOrPattern(arg string) []string {
 	}
 	if isPattern {
 		files, err := filepath.Glob(arg)
+		if len(files) == 0 {
+			return nil, ErrFindFiles
+		}
 		if err != nil {
-			fmt.Println("Ошибка поиска файлов:", err)
+			return nil, err
 		}
 
 		for _, file := range files {
 			fs = append(fs, file)
 		}
 	} else {
-		fs = append(fs, arg)
+		if _, err := os.Stat(arg); err != nil {
+			if os.IsNotExist(err) {
+				return nil, ErrFindFiles
+			}
+		} else {
+			fs = append(fs, arg)
+		}
 	}
-	return fs
-}
-
-func parseFlags() ([]string, string) {
-	flag.IntVar(&A, "A", 0, "\"after\" печатать +N строк после совпадения")
-	flag.IntVar(&B, "B", 0, "\"before\" печатать +N строк до совпадения")
-	flag.IntVar(&C, "C", 0, "\"context\" (A+B) печатать ±N строк вокруг совпадения")
-	flag.BoolVar(&c, "c", false, "\"count\" (количество строк)")
-	flag.BoolVar(&i, "i", false, "\"ignore-case\" (игнорировать регистр)")
-	flag.BoolVar(&v, "v", false, "\"invert\" (вместо совпадения, исключать)")
-	flag.BoolVar(&F, "F", false, "\"fixed\", точное совпадение со строкой, не паттерн")
-	flag.BoolVar(&n, "n", false, "\"line num\", печатать номер строки")
-	flag.Parse()
-	fs := parseNameOrPattern(flag.Arg(1))
-	str := flag.Arg(0)
-	return fs, str
+	return fs, nil
 }
 
 func fillFileSlice(filenames []string) (FileSlice, error) {
@@ -151,7 +164,7 @@ func printer(fileSlice FileSlice) {
 	afterN := "After  -- %v [%v]\n"
 
 	for _, file := range fileSlice {
-		if len(file.findStr) > 1 {
+		if len(file.findStr) > 0 {
 			fmt.Printf("---------------------------%v---------------------------\n", file.name)
 		}
 
@@ -188,18 +201,20 @@ func printer(fileSlice FileSlice) {
 			if A > 0 {
 				for iA := 1; iA <= A; iA++ {
 					afterIdx := idx + iA
-					if n {
-						fmt.Printf(afterN, file.lines[afterIdx].Text, afterIdx+1)
-						continue
+					if afterIdx < len(file.lines) {
+						if n {
+							fmt.Printf(afterN, file.lines[afterIdx].Text, afterIdx+1)
+							continue
+						}
+						fmt.Printf(after, file.lines[afterIdx].Text)
 					}
-					fmt.Printf(after, file.lines[afterIdx].Text)
 				}
 			}
 		}
 	}
 }
 
-func Finder(fileSlice FileSlice, text string) {
+func finder(fileSlice FileSlice, text string) {
 	found := false
 	for idx := range fileSlice {
 		file := &fileSlice[idx]
@@ -259,15 +274,16 @@ func Finder(fileSlice FileSlice, text string) {
 	}
 
 }
-
-func main() {
-	fsn, str := parseFlags()
-	//fmt.Println(fsn)
-	//fmt.Println(str)
+func Find() {
+	parseFlags()
+	fsn, err := parseNameOrPattern(nameOrPattern)
 	fs, err := fillFileSlice(fsn)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
-	Finder(fs, str)
+	finder(fs, searchStr)
+}
 
+func main() {
+	Find()
 }

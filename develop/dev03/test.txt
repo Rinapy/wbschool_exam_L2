@@ -1,5 +1,0 @@
-5 5 3
-1 banan 1
-223 6 4
-3 apple 8
-1 apple 200
