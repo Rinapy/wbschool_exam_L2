@@ -184,7 +184,7 @@ func TestSorter(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:    "Ошибка сортировки по выходы за пределы доступных k",
+			name:    "Ошибка сортировки по выходу за пределы доступных k",
 			arg:     []string{"cmd", "-k", "23", "./testfiles/test.txt"},
 			want:    nil,
 			wantErr: ErrIndexFile,
@@ -200,6 +200,7 @@ func TestSorter(t *testing.T) {
 		flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 		os.Args = tt.arg
 		lineSlice, err := Sorter()
+		fmt.Println(tt.name)
 		if !errors.Is(err, tt.wantErr) {
 			t.Errorf("Sorter() error = %v, want.err %v", err, tt.wantErr)
 			return

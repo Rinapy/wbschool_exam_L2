@@ -81,7 +81,7 @@ func (ls *LineSlice) Less(i, j int) bool {
 		// Если оба значения являются текстовыми
 		return (*ls)[i].Fields[k] > (*ls)[j].Fields[k] // Сортировка текста в обратном алфавитном порядке
 	default:
-		return (*ls)[i].Fields[k] > (*ls)[j].Fields[k]
+		return (*ls)[i].Fields[k] < (*ls)[j].Fields[k]
 	}
 }
 
@@ -136,28 +136,33 @@ func parseFlags() string {
 
 func fillNewFile(slice *LineSlice) error {
 	file, err := os.Create("output.txt")
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			log.Fatal(ErrCloseFile)
-		}
-	}(file)
 	if err != nil {
 		return ErrOpenFile
 	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatal(ErrCloseFile)
+		}
+	}()
+
 	writer := bufio.NewWriter(file)
-	defer func(writer *bufio.Writer) {
-		err = writer.Flush()
-		if err != nil {
+	defer func() {
+		if err := writer.Flush(); err != nil {
 			log.Fatal(ErrWriteFile)
 		}
-	}(writer)
+	}()
+
 	for _, v := range *slice {
-		_, err = writer.WriteString(strings.Join(v.Fields, " ") + "\n")
+		_, err := writer.WriteString(strings.Join(v.Fields, " "))
+		if err != nil {
+			return ErrWriteFile
+		}
+		_, err = writer.WriteString("\n")
 		if err != nil {
 			return ErrWriteFile
 		}
 	}
+
 	return nil
 }
 
