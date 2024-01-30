@@ -31,17 +31,19 @@ import (
 */
 
 var (
-	A             int
-	B             int
-	C             int
-	c             bool
-	i             bool
-	v             bool
-	F             bool
-	n             bool
-	searchStr     string
-	nameOrPattern string
-	ErrFindFiles  = errors.New("ошибка поиска файла или файлов")
+	A               int
+	B               int
+	C               int
+	c               bool
+	i               bool
+	v               bool
+	F               bool
+	n               bool
+	searchStr       string
+	nameOrPattern   string
+	ErrFindFiles    = errors.New("ошибка поиска файла или файлов")
+	ErrNoLinesFound = errors.New("совпадения не найдены")
+	ErrFileIsEmpty  = errors.New("файл пустой")
 )
 
 type Line struct {
@@ -50,10 +52,9 @@ type Line struct {
 type lineSlice []Line
 
 type File struct {
-	name     string
-	lines    lineSlice
-	strCount int
-	findStr  []int
+	name    string
+	lines   lineSlice
+	findStr []int
 }
 
 type FileSlice []File
@@ -116,15 +117,16 @@ func fillFileSlice(filenames []string) (FileSlice, error) {
 		defer file.Close()
 
 		lines, err := readLines(file)
-		if err != nil {
+		if err != nil && !errors.Is(err, ErrFileIsEmpty) {
 			return nil, err
+		} else if errors.Is(err, ErrFileIsEmpty) {
+			log.Println(filename, err)
 		}
 
 		fileInfo := File{
-			name:     filename,
-			lines:    lines,
-			strCount: len(lines),
-			findStr:  []int{},
+			name:    filename,
+			lines:   lines,
+			findStr: []int{},
 		}
 
 		fileSlice = append(fileSlice, fileInfo)
@@ -135,7 +137,7 @@ func fillFileSlice(filenames []string) (FileSlice, error) {
 
 func readLines(file *os.File) ([]Line, error) {
 	reader := bufio.NewReader(file)
-	var lines []Line
+	var lines lineSlice
 
 	for {
 		lineText, err := reader.ReadString('\n')
@@ -151,7 +153,9 @@ func readLines(file *os.File) ([]Line, error) {
 		line := Line{Text: cleanStr}
 		lines = append(lines, line)
 	}
-
+	if len(lines) == 0 {
+		return nil, ErrFileIsEmpty
+	}
 	return lines, nil
 }
 
@@ -162,10 +166,11 @@ func printer(fileSlice FileSlice) {
 	matchN := "Match -- %v [%v]\n"
 	beforeN := "Before -- %v [%v]\n"
 	afterN := "After  -- %v [%v]\n"
+	spliter := "---------------------------%v---------------------------\n"
 
 	for _, file := range fileSlice {
 		if len(file.findStr) > 0 {
-			fmt.Printf("---------------------------%v---------------------------\n", file.name)
+			fmt.Printf(spliter, file.name)
 		}
 
 		if c {
@@ -214,7 +219,7 @@ func printer(fileSlice FileSlice) {
 	}
 }
 
-func finder(fileSlice FileSlice, text string) {
+func finder(fileSlice FileSlice, text string) (FileSlice, error) {
 	found := false
 	for idx := range fileSlice {
 		file := &fileSlice[idx]
@@ -265,23 +270,28 @@ func finder(fileSlice FileSlice, text string) {
 			}
 
 		}
-
 	}
 	if found {
-		printer(fileSlice)
-	} else {
-		fmt.Println("Совпадений не найдено")
+		return fileSlice, nil
 	}
-
+	return nil, ErrNoLinesFound
 }
 func Find() {
 	parseFlags()
 	fsn, err := parseNameOrPattern(nameOrPattern)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fs, err := fillFileSlice(fsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	finder(fs, searchStr)
+	fs, err = finder(fs, searchStr)
+	if err != nil {
+		fmt.Println("Совпадения не найдены")
+	} else {
+		printer(fs)
+	}
 }
 
 func main() {
