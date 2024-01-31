@@ -44,6 +44,13 @@ var (
 	ErrFindFiles    = errors.New("ошибка поиска файла или файлов")
 	ErrNoLinesFound = errors.New("совпадения не найдены")
 	ErrFileIsEmpty  = errors.New("файл пустой")
+	match           = "Match -- %v\n"
+	before          = "Before -- %v\n"
+	after           = "After  -- %v\n"
+	matchN          = "Match -- %v [%v]\n"
+	beforeN         = "Before -- %v [%v]\n"
+	afterN          = "After  -- %v [%v]\n"
+	spliter         = "---------------------------%v---------------------------\n"
 )
 
 type Line struct {
@@ -160,13 +167,6 @@ func readLines(file *os.File) ([]Line, error) {
 }
 
 func printer(fileSlice FileSlice) {
-	match := "Match -- %v\n"
-	before := "Before -- %v\n"
-	after := "After  -- %v\n"
-	matchN := "Match -- %v [%v]\n"
-	beforeN := "Before -- %v [%v]\n"
-	afterN := "After  -- %v [%v]\n"
-	spliter := "---------------------------%v---------------------------\n"
 
 	for _, file := range fileSlice {
 		if len(file.findStr) > 0 {
@@ -185,11 +185,11 @@ func printer(fileSlice FileSlice) {
 			}
 
 			if B > 0 {
-				for iB := 1; iB <= B; iB++ {
+				for iB := B; iB >= 1; iB-- {
 					beforeIdx := idx - iB
 					if beforeIdx >= 0 {
 						if n {
-							fmt.Printf(beforeN, file.lines[beforeIdx].Text, beforeIdx+1)
+							fmt.Printf(beforeN, file.lines[beforeIdx].Text, beforeIdx-1)
 							continue
 						}
 						fmt.Printf(before, file.lines[beforeIdx].Text)

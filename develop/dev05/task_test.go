@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -294,5 +295,235 @@ func TestFinderFunc(t *testing.T) {
 		if !reflect.DeepEqual(fs[0].findStr, tt.wantRes) {
 			t.Errorf("Expected findStr '%v', but got '%v'", tt.wantRes, fs[0].findStr)
 		}
+	}
+}
+
+func TestPrinterFunc(t *testing.T) {
+
+	tests := []struct {
+		name    string
+		arg     []string
+		data    FileSlice
+		wantRes []string
+	}{
+		{
+			name: "Test-Case: Вывод совпадений",
+			arg:  []string{"cmd", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2 contains the word apple"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(match, "Test line 2 contains the word apple"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -A",
+			arg:  []string{"cmd", "-A", "2", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2 contains the word apple"},
+						Line{"Test line 3"},
+						Line{"Test line 4"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(match, "Test line 2 contains the word apple"),
+				fmt.Sprintf(after, "Test line 3"),
+				fmt.Sprintf(after, "Test line 4"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -A c выходом за пределы",
+			arg:  []string{"cmd", "-A", "5", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2 contains the word apple"},
+						Line{"Test line 3"},
+						Line{"Test line 4"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(match, "Test line 2 contains the word apple"),
+				fmt.Sprintf(after, "Test line 3"),
+				fmt.Sprintf(after, "Test line 4"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -B",
+			arg:  []string{"cmd", "-B", "2", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+						Line{"Test line 4"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(before, "Test line 1"),
+				fmt.Sprintf(before, "Test line 2"),
+				fmt.Sprintf(match, "Test line 3 contains the word apple"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -B с выходом за пределы",
+			arg:  []string{"cmd", "-B", "5", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+						Line{"Test line 4"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(before, "Test line 1"),
+				fmt.Sprintf(before, "Test line 2"),
+				fmt.Sprintf(match, "Test line 3 contains the word apple"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -С",
+			arg:  []string{"cmd", "-C", "2", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+						Line{"Test line 4"},
+						Line{"Test line 5"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(before, "Test line 1"),
+				fmt.Sprintf(before, "Test line 2"),
+				fmt.Sprintf(match, "Test line 3 contains the word apple"),
+				fmt.Sprintf(after, "Test line 4"),
+				fmt.Sprintf(after, "Test line 5"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -С с выходом за пределы",
+			arg:  []string{"cmd", "-C", "9", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+						Line{"Test line 4"},
+						Line{"Test line 5"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(before, "Test line 1"),
+				fmt.Sprintf(before, "Test line 2"),
+				fmt.Sprintf(match, "Test line 3 contains the word apple"),
+				fmt.Sprintf(after, "Test line 4"),
+				fmt.Sprintf(after, "Test line 5"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -c",
+			arg:  []string{"cmd", "-c", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(match, "1"),
+			},
+		},
+		{
+			name: "Test-Case: Вывод с флагом -n",
+			arg:  []string{"cmd", "-n", "apple"},
+			data: FileSlice{
+				File{
+					name: "Test.txt",
+					lines: lineSlice{
+						Line{"Test line 1"},
+						Line{"Test line 2"},
+						Line{"Test line 3 contains the word apple"},
+					},
+				},
+			},
+			wantRes: []string{
+				fmt.Sprintf(spliter, "Test.txt"),
+				fmt.Sprintf(matchN, "Test line 3 contains the word apple", "3"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+		os.Args = tt.arg
+		parseFlags()
+
+		fmt.Println(tt.name)
+		fs, err := finder(tt.data, searchStr)
+		if err != nil {
+			t.Errorf("Ошибка при поиске строк err: %v", err)
+		}
+
+		stdout := os.Stdout
+		file, err := os.Create("./testfiles/Stdout.txt")
+		if err != nil {
+			t.Errorf("error create output file err: %v", err)
+		}
+		os.Stdout = file
+		printer(fs)
+		fsOut, err := fillFileSlice([]string{file.Name()})
+		os.Stdout = stdout
+
+		if err != nil {
+			t.Errorf("Ошибка при чтении Stdout.txt")
+		}
+		for i, v := range tt.wantRes {
+			if fsOut[0].lines[i].Text != strings.TrimRight(v, "\r\n") {
+				t.Errorf("Ошибка вывода, ожидалось %v, выведено %v", v, fsOut[0].lines[i].Text)
+			}
+		}
+
+		file.Close()
+		os.Remove("./testfiles/Stdout.txt")
 	}
 }
