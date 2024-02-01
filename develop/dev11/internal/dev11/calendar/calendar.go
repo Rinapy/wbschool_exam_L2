@@ -1,7 +1,7 @@
 package calendar
 
 import (
-	"crypto/rand"
+	"github.com/google/uuid"
 	"sync"
 	"time"
 )
@@ -15,9 +15,9 @@ func (err *EventNotFound) Error() string {
 type Event struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	UserUID     string    `json:"userID"`
-	StartDT     time.Time `json:"startDT"`
-	EndDT       time.Time `json:"endDT"`
+	UserUID     string    `json:"user_uid"`
+	StartDT     time.Time `json:"start_dt"`
+	EndDT       time.Time `json:"end_dt"`
 }
 
 func NewEvent() *Event {
@@ -39,12 +39,8 @@ func NewCalendar() *Calendar {
 func (c *Calendar) UIDGen() (string, error) {
 	var key string
 	for {
-		b := make([]byte, 16)
-		_, err := rand.Read(b)
-		if err != nil {
-			return "", err
-		}
-		key = string(b)
+		b := uuid.New()
+		key = b.String()
 		if _, ok := c.events[key]; !ok {
 			break
 		}
@@ -52,10 +48,10 @@ func (c *Calendar) UIDGen() (string, error) {
 	return key, nil
 }
 
-func (c *Calendar) GetEvent(eUID string) (*Event, error) {
+func (c *Calendar) GetEvent(UID string) (*Event, error) {
 	c.mu.RLock()
 
-	if e, ok := c.events[eUID]; !ok {
+	if e, ok := c.events[UID]; !ok {
 		return nil, &EventNotFound{}
 	} else {
 		return e, nil
@@ -65,12 +61,12 @@ func (c *Calendar) GetEvent(eUID string) (*Event, error) {
 func (c *Calendar) CreateEvent(e *Event) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	eUID, err := c.UIDGen()
+	UID, err := c.UIDGen()
 	if err != nil {
 		return "", err
 	}
-	c.events[eUID] = e
-	return eUID, nil
+	c.events[UID] = e
+	return UID, nil
 
 }
 
@@ -96,14 +92,14 @@ func (c *Calendar) UpdateEvent(e *Event, eUID string) (*Event, error) {
 	}
 }
 
-func (c *Calendar) DeleteEvent(eUID string) error {
+func (c *Calendar) DeleteEvent(UID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	_, found := c.events[eUID]
+	_, found := c.events[UID]
 	if !found {
 		return &EventNotFound{}
 	} else {
-		delete(c.events, eUID)
+		delete(c.events, UID)
 	}
 	return nil
 }

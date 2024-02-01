@@ -26,9 +26,10 @@ func (s *Server) handle() {
 	http.Handle("/create_event", logger(http.HandlerFunc(s.addEvent)))
 	http.Handle("/update_event", logger(http.HandlerFunc(s.updateEvent)))
 	http.Handle("/delete_event", logger(http.HandlerFunc(s.deleteEvent)))
-	http.Handle("/events_for_day", logger(http.HandlerFunc(s.dayEvents)))
-	http.Handle("/events_for_week", logger(http.HandlerFunc(s.weekEvents)))
-	http.Handle("/events_for_month", logger(http.HandlerFunc(s.monthEvents)))
+	http.Handle("/get_event", logger(http.HandlerFunc(s.getEvent)))
+	//http.Handle("/events_for_day", logger(http.HandlerFunc(s.dayEvents)))
+	//http.Handle("/events_for_week", logger(http.HandlerFunc(s.weekEvents)))
+	//http.Handle("/events_for_month", logger(http.HandlerFunc(s.monthEvents)))
 }
 
 func logger(handler http.Handler) http.Handler { // Работает как middleware
