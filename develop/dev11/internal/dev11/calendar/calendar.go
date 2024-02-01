@@ -1,7 +1,9 @@
 package calendar
 
 import (
+	"fmt"
 	"github.com/google/uuid"
+	"os"
 	"sync"
 	"time"
 )
@@ -25,14 +27,20 @@ func NewEvent() *Event {
 }
 
 type Calendar struct {
-	events map[string]*Event
-	mu     *sync.RWMutex
+	events      map[string]*Event
+	dayEvents   map[string]*Event
+	weekEvents  map[string]*Event
+	monthEvents map[string]*Event
+	mu          *sync.RWMutex
 }
 
 func NewCalendar() *Calendar {
 	return &Calendar{
-		events: make(map[string]*Event),
-		mu:     &sync.RWMutex{},
+		events:      make(map[string]*Event),
+		dayEvents:   make(map[string]*Event),
+		weekEvents:  make(map[string]*Event),
+		monthEvents: make(map[string]*Event),
+		mu:          &sync.RWMutex{},
 	}
 }
 
@@ -102,4 +110,90 @@ func (c *Calendar) DeleteEvent(UID string) error {
 		delete(c.events, UID)
 	}
 	return nil
+}
+
+func (c *Calendar) getDayEvents(userUID string) []*Event {
+	res := make([]*Event, 0)
+	c.mu.RLock()
+	for _, event := range c.dayEvents {
+		if event.UserUID == userUID {
+			res = append(res, event)
+		}
+	}
+	return res
+}
+
+func (c *Calendar) getWeekEvents(userUID string) []*Event {
+	res := make([]*Event, 0)
+	c.mu.RLock()
+	for _, event := range c.weekEvents {
+		if event.UserUID == userUID {
+			res = append(res, event)
+		}
+	}
+	return res
+}
+
+func (c *Calendar) getMonthEvents(userUID string) []*Event {
+	res := make([]*Event, 0)
+	c.mu.RLock()
+	for _, event := range c.monthEvents {
+		if event.UserUID == userUID {
+			res = append(res, event)
+		}
+	}
+	return res
+}
+
+func (c *Calendar) EventBalanced(target string, sigint <-chan os.Signal) {
+	//targetMap := map[string]map[string]*Event{
+	//	"day":   c.dayEvents,
+	//	"week":  c.weekEvents,
+	//	"month": c.monthEvents,
+	//} прикол конечно, стоил мне 3 часов жизни и 10 минут мидла
+	targetMap := make(map[string]map[string]*Event)
+	targetMap["day"] = c.dayEvents
+	targetMap["week"] = c.weekEvents
+	targetMap["month"] = c.monthEvents
+	for {
+		select {
+		case <-sigint:
+			return
+		default:
+			today := time.Now().Truncate(24 * time.Hour)
+			thisWeek := today.AddDate(0, 0, -int(today.Weekday()))
+			thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, today.Location())
+			c.mu.Lock()
+			fmt.Println(len(c.events), len(c.weekEvents))
+			fmt.Println(c.weekEvents)
+			for uid, event := range c.events {
+				systemMap := map[string]bool{
+					"day":   event.StartDT.Before(today.Add(24*time.Hour)) && event.EndDT.After(today),
+					"week":  event.StartDT.After(thisWeek) && event.EndDT.Before(thisWeek.Add(7*24*time.Hour)),
+					"month": event.StartDT.After(thisMonth) && event.EndDT.Before(thisMonth.AddDate(0, 1, 0)),
+				}
+				if systemMap[target] {
+					fmt.Println(systemMap[target], target)
+					targetMap[target][uid] = event
+
+					delete(c.events, uid)
+				}
+			}
+			for uid, event := range targetMap[target] {
+				systemMap := map[string]bool{
+					"day":   event.StartDT.Before(today.Add(24*time.Hour)) && event.EndDT.After(today),
+					"week":  event.StartDT.After(thisWeek) && event.EndDT.Before(thisWeek.Add(7*24*time.Hour)),
+					"month": event.StartDT.After(thisMonth) && event.EndDT.Before(thisMonth.AddDate(0, 1, 0)),
+				}
+				if !systemMap[target] {
+					fmt.Println(systemMap[target], target)
+					c.events[uid] = event
+					Map := targetMap[target]
+					delete(Map, uid)
+				}
+			}
+			c.mu.Unlock()
+			time.Sleep(10 * time.Second)
+		}
+	}
 }

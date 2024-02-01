@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -34,7 +33,6 @@ func (s *Server) addEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	eventRaw := NewEventRaw()
 	err := json.NewDecoder(r.Body).Decode(&eventRaw)
-	fmt.Println(eventRaw)
 	if err != nil {
 		s.response(false, w, errInput.Error(), http.StatusBadRequest)
 		return
@@ -104,6 +102,26 @@ func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.response(false, w, errMethod.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	//user, foundUser := r.URL.Query()["user_uid"]
+	eventRaw, foundEvent := r.URL.Query()["event_uid"]
+	eventUID := eventRaw[0]
+	if !foundEvent {
+		s.response(false, w, errInput.Error(), http.StatusBadRequest)
+		return
+	}
+	event, err := s.calendar.GetEvent(eventUID)
+	if err != nil {
+		s.response(false, w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s.response(true, w, event, http.StatusOK)
+}
+
+func (s *Server) dayEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		s.response(false, w, errMethod.Error(), http.StatusServiceUnavailable)
 		return

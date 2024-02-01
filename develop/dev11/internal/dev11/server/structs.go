@@ -2,7 +2,6 @@ package server
 
 import (
 	"dev11/internal/dev11/calendar"
-	"fmt"
 	"time"
 )
 
@@ -24,7 +23,7 @@ func (e *EventRaw) convertToEvent() *calendar.Event {
 	eve.Name = e.Name
 	eve.Description = e.Description
 	eve.StartDT, _ = time.Parse(time.DateOnly, e.StartDT)
-	fmt.Println(time.Parse(time.DateOnly, e.StartDT))
+	eve.EndDT, _ = time.Parse(time.DateOnly, e.EndDT)
 	return eve
 }
 
