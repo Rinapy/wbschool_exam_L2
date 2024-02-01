@@ -165,6 +165,7 @@ func (c *Calendar) EventBalanced(target string, sigint <-chan os.Signal) {
 			thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, today.Location())
 			c.mu.Lock()
 			fmt.Println(len(c.events), len(c.weekEvents))
+			fmt.Println(c.events)
 			fmt.Println(c.weekEvents)
 			for uid, event := range c.events {
 				systemMap := map[string]bool{
@@ -172,10 +173,14 @@ func (c *Calendar) EventBalanced(target string, sigint <-chan os.Signal) {
 					"week":  event.StartDT.After(thisWeek) && event.EndDT.Before(thisWeek.Add(7*24*time.Hour)),
 					"month": event.StartDT.After(thisMonth) && event.EndDT.Before(thisMonth.AddDate(0, 1, 0)),
 				}
-				if systemMap[target] {
-					fmt.Println(systemMap[target], target)
-					targetMap[target][uid] = event
-
+				if systemMap["day"] {
+					targetMap["day"][uid] = event
+					if systemMap["week"] {
+						targetMap["week"][uid] = event
+						if systemMap["week"] {
+							targetMap["week"][uid] = event
+						}
+					}
 					delete(c.events, uid)
 				}
 			}
