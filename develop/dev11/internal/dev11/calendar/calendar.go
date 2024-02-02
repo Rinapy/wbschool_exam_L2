@@ -1,12 +1,21 @@
 package calendar
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"os"
 	"sync"
 	"time"
 )
+
+type GetEvents struct {
+	UserUID string
+	Date    time.Time
+	DateIn  bool
+}
+
+func NewGetEvents() *GetEvents {
+	return &GetEvents{}
+}
 
 type EventNotFound struct{}
 
@@ -44,35 +53,36 @@ func NewCalendar() *Calendar {
 	}
 }
 
-func (c *Calendar) UIDGen() (string, error) {
+func (c *Calendar) UIDGen() string {
 	var key string
-	for {
-		b := uuid.New()
-		key = b.String()
-		if _, ok := c.events[key]; !ok {
-			break
-		}
-	}
-	return key, nil
+	b := uuid.New()
+	key = b.String()
+	return key
 }
 
 func (c *Calendar) GetEvent(UID string) (*Event, error) {
 	c.mu.RLock()
 
-	if e, ok := c.events[UID]; !ok {
-		return nil, &EventNotFound{}
-	} else {
+	if e, ok := c.events[UID]; ok {
 		return e, nil
 	}
+	if e, ok := c.dayEvents[UID]; ok {
+		return e, nil
+	}
+	if e, ok := c.weekEvents[UID]; ok {
+		return e, nil
+	}
+	if e, ok := c.monthEvents[UID]; ok {
+		return e, nil
+	}
+
+	return nil, &EventNotFound{}
 }
 
 func (c *Calendar) CreateEvent(e *Event) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	UID, err := c.UIDGen()
-	if err != nil {
-		return "", err
-	}
+	UID := c.UIDGen()
 	c.events[UID] = e
 	return UID, nil
 
@@ -103,102 +113,228 @@ func (c *Calendar) UpdateEvent(e *Event, eUID string) (*Event, error) {
 func (c *Calendar) DeleteEvent(UID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	_, found := c.events[UID]
-	if !found {
-		return &EventNotFound{}
-	} else {
+
+	if _, ok := c.events[UID]; ok {
 		delete(c.events, UID)
+	} else if _, ok = c.dayEvents[UID]; ok {
+		delete(c.dayEvents, UID)
+	} else if _, ok = c.weekEvents[UID]; ok {
+		delete(c.weekEvents, UID)
+	} else if _, ok = c.monthEvents[UID]; ok {
+		delete(c.monthEvents, UID)
+	} else {
+		return &EventNotFound{}
 	}
 	return nil
 }
 
-func (c *Calendar) getDayEvents(userUID string) []*Event {
+func (c *Calendar) GetDayEvents(getEvents *GetEvents) []*Event {
 	res := make([]*Event, 0)
 	c.mu.RLock()
-	for _, event := range c.dayEvents {
-		if event.UserUID == userUID {
-			res = append(res, event)
+	defer c.mu.RUnlock()
+	if !getEvents.DateIn {
+		for _, event := range c.dayEvents {
+			if event.UserUID == getEvents.UserUID {
+				res = append(res, event)
+			}
+		}
+		return res
+	}
+	for _, v := range c.events {
+		if v.UserUID == getEvents.UserUID {
+			if middle(v.StartDT.Year(), getEvents.Date.Year(), v.EndDT.Year()) &&
+				middle(int(v.StartDT.Month()), int(getEvents.Date.Month()), int(v.EndDT.Month())) &&
+				middle(v.StartDT.Day(), getEvents.Date.Day(), v.EndDT.Day()) {
+				res = append(res, v)
+			}
+		}
+	}
+	for _, v := range c.dayEvents {
+		if v.UserUID == getEvents.UserUID {
+			if middle(v.StartDT.Year(), getEvents.Date.Year(), v.EndDT.Year()) &&
+				middle(int(v.StartDT.Month()), int(getEvents.Date.Month()), int(v.EndDT.Month())) &&
+				middle(v.StartDT.Day(), getEvents.Date.Day(), v.EndDT.Day()) {
+				res = append(res, v)
+			}
 		}
 	}
 	return res
 }
 
-func (c *Calendar) getWeekEvents(userUID string) []*Event {
+func (c *Calendar) GetWeekEvents(getEvents *GetEvents) []*Event {
 	res := make([]*Event, 0)
 	c.mu.RLock()
-	for _, event := range c.weekEvents {
-		if event.UserUID == userUID {
-			res = append(res, event)
+	defer c.mu.RUnlock()
+	if !getEvents.DateIn {
+		for _, event := range c.weekEvents {
+			if event.UserUID == getEvents.UserUID {
+				res = append(res, event)
+			}
+		}
+		return res
+	}
+	var y1, w1, yx, wx, y2, w2 int
+	for _, v := range c.events {
+		if v.UserUID == getEvents.UserUID {
+			y1, w1 = v.StartDT.ISOWeek()
+			yx, wx = getEvents.Date.ISOWeek()
+			y2, w2 = v.EndDT.ISOWeek()
+			if middle(y1, yx, y2) && middle(w1, wx, w2) {
+				res = append(res, v)
+			}
+		}
+	}
+	for _, v := range c.weekEvents {
+		if v.UserUID == getEvents.UserUID {
+			y1, w1 = v.StartDT.ISOWeek()
+			yx, wx = getEvents.Date.ISOWeek()
+			y2, w2 = v.EndDT.ISOWeek()
+			if middle(y1, yx, y2) && middle(w1, wx, w2) {
+				res = append(res, v)
+			}
 		}
 	}
 	return res
 }
 
-func (c *Calendar) getMonthEvents(userUID string) []*Event {
+func (c *Calendar) GetMonthEvents(getEvents *GetEvents) []*Event {
 	res := make([]*Event, 0)
 	c.mu.RLock()
-	for _, event := range c.monthEvents {
-		if event.UserUID == userUID {
-			res = append(res, event)
+	defer c.mu.RUnlock()
+	if !getEvents.DateIn {
+		for _, event := range c.monthEvents {
+			if event.UserUID == getEvents.UserUID {
+				res = append(res, event)
+			}
+		}
+		return res
+	}
+	for _, v := range c.events {
+		if v.UserUID == getEvents.UserUID {
+			if middle(v.StartDT.Year(), getEvents.Date.Year(), v.EndDT.Year()) &&
+				middle(int(v.StartDT.Month()), int(getEvents.Date.Month()), int(v.EndDT.Month())) {
+				res = append(res, v)
+			}
+		}
+	}
+	for _, v := range c.monthEvents {
+		if v.UserUID == getEvents.UserUID {
+			if middle(v.StartDT.Year(), getEvents.Date.Year(), v.EndDT.Year()) &&
+				middle(int(v.StartDT.Month()), int(getEvents.Date.Month()), int(v.EndDT.Month())) {
+				res = append(res, v)
+			}
 		}
 	}
 	return res
 }
 
-func (c *Calendar) EventBalanced(target string, sigint <-chan os.Signal) {
-	//targetMap := map[string]map[string]*Event{
-	//	"day":   c.dayEvents,
-	//	"week":  c.weekEvents,
-	//	"month": c.monthEvents,
-	//} прикол конечно, стоил мне 3 часов жизни и 10 минут мидла
-	targetMap := make(map[string]map[string]*Event)
-	targetMap["day"] = c.dayEvents
-	targetMap["week"] = c.weekEvents
-	targetMap["month"] = c.monthEvents
+func (c *Calendar) EventBalanced(sigint <-chan os.Signal) {
 	for {
 		select {
 		case <-sigint:
 			return
 		default:
-			today := time.Now().Truncate(24 * time.Hour)
-			thisWeek := today.AddDate(0, 0, -int(today.Weekday()))
-			thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, today.Location())
 			c.mu.Lock()
-			fmt.Println(len(c.events), len(c.weekEvents))
-			fmt.Println(c.events)
-			fmt.Println(c.weekEvents)
 			for uid, event := range c.events {
-				systemMap := map[string]bool{
-					"day":   event.StartDT.Before(today.Add(24*time.Hour)) && event.EndDT.After(today),
-					"week":  event.StartDT.After(thisWeek) && event.EndDT.Before(thisWeek.Add(7*24*time.Hour)),
-					"month": event.StartDT.After(thisMonth) && event.EndDT.Before(thisMonth.AddDate(0, 1, 0)),
+				added := false
+				if c.inDayRange(event) {
+					//log.Printf("EventsBalanced add event to dayEvents\n")
+					c.dayEvents[uid] = event
+					added = true
 				}
-				if systemMap["day"] {
-					targetMap["day"][uid] = event
-					if systemMap["week"] {
-						targetMap["week"][uid] = event
-						if systemMap["week"] {
-							targetMap["week"][uid] = event
-						}
-					}
+				if c.inWeekRange(event) {
+					//log.Printf("EventsBalanced add event to weekEvents\n")
+					c.weekEvents[uid] = event
+					added = true
+				}
+				if c.inMonthRange(event) {
+					//log.Printf("EventsBalanced add event to monthEvents\n")
+					c.monthEvents[uid] = event
+					added = true
+				}
+				if added {
+					//log.Printf("EventsBalanced del event to events")
 					delete(c.events, uid)
 				}
-			}
-			for uid, event := range targetMap[target] {
-				systemMap := map[string]bool{
-					"day":   event.StartDT.Before(today.Add(24*time.Hour)) && event.EndDT.After(today),
-					"week":  event.StartDT.After(thisWeek) && event.EndDT.Before(thisWeek.Add(7*24*time.Hour)),
-					"month": event.StartDT.After(thisMonth) && event.EndDT.Before(thisMonth.AddDate(0, 1, 0)),
-				}
-				if !systemMap[target] {
-					fmt.Println(systemMap[target], target)
-					c.events[uid] = event
-					Map := targetMap[target]
-					delete(Map, uid)
-				}
+
 			}
 			c.mu.Unlock()
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 	}
+}
+
+func (c *Calendar) EventsCleaner(sigint <-chan os.Signal) {
+	for {
+		select {
+		case <-sigint:
+			return
+		default:
+			c.mu.Lock()
+			for uid, event := range c.dayEvents {
+				if !c.inDayRange(event) {
+					delete(c.dayEvents, uid)
+					//log.Printf("EventsCleaner del event %v to dayEvents", event.Name)
+					_, InWeek := c.weekEvents[uid]
+					_, InMonth := c.monthEvents[uid]
+					if !InWeek && !InMonth {
+						c.events[uid] = event
+						//log.Printf("EventsCleaner add event %v to events", event.Name)
+					}
+				}
+			}
+			for uid, event := range c.weekEvents {
+				if !c.inWeekRange(event) {
+					delete(c.weekEvents, uid)
+					//log.Printf("EventsCleaner del event %v to weekEvents", event.Name)
+					_, InMonth := c.monthEvents[uid]
+					if !InMonth {
+						c.events[uid] = event
+						//log.Printf("EventsCleaner add event %v to events", event.Name)
+					}
+				}
+			}
+			for uid, event := range c.monthEvents {
+				if !c.inMonthRange(event) {
+					delete(c.monthEvents, uid)
+					//log.Printf("EventsCleaner del event %v to monthEvents", event.Name)
+					c.events[uid] = event
+					//log.Printf("EventsCleaner add event %v to events", event.Name)
+				}
+			}
+		}
+		c.mu.Unlock()
+		//fmt.Println("events", c.events)
+		//fmt.Println("dayEvents", c.dayEvents)
+		//fmt.Println("weekEvents", c.weekEvents)
+		//fmt.Println("monthEvents", c.monthEvents)
+		time.Sleep(60 * time.Second)
+	}
+}
+
+func (c *Calendar) inDayRange(event *Event) bool {
+	today := time.Now().Truncate(24 * time.Hour)
+	return middle(event.StartDT.Year(), today.Year(), event.EndDT.Year()) &&
+		middle(int(event.StartDT.Month()), int(today.Month()), int(event.EndDT.Month())) &&
+		middle(event.StartDT.Day(), today.Day(), event.EndDT.Day())
+}
+func (c *Calendar) inWeekRange(event *Event) bool {
+	today := time.Now().Truncate(24 * time.Hour)
+	y1, w1 := event.StartDT.ISOWeek()
+	yx, wx := today.ISOWeek()
+	y2, w2 := event.EndDT.ISOWeek()
+	return middle(y1, yx, y2) && middle(w1, wx, w2)
+}
+func (c *Calendar) inMonthRange(event *Event) bool {
+	today := time.Now().Truncate(24 * time.Hour)
+	thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, today.Location())
+	return middle(event.StartDT.Year(), thisMonth.Year(), event.EndDT.Year()) &&
+		middle(int(event.StartDT.Month()), int(thisMonth.Month()), int(event.EndDT.Month()))
+}
+
+func middle(first, x, second int) bool {
+	if first <= x && x <= second {
+		return true
+	}
+	return false
 }

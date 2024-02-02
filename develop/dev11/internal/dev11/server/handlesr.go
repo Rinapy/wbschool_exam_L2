@@ -1,14 +1,17 @@
 package server
 
 import (
+	"dev11/internal/dev11/calendar"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 var (
 	errMethod   = &IncorrectMethod{}
 	errInput    = &InvalidInput{}
 	errServer   = &ServerError{}
+	errDate     = &InvalidDate{}
 	errEventUID = &InvalidEventUID{}
 )
 
@@ -101,42 +104,88 @@ func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) getEvent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) dayEvents(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		s.response(false, w, errMethod.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	//user, foundUser := r.URL.Query()["user_uid"]
-	eventRaw, foundEvent := r.URL.Query()["event_uid"]
-	eventUID := eventRaw[0]
-	if !foundEvent {
+	userRaw, foundUser := r.URL.Query()["user_id"]
+	dateRaw, foundDate := r.URL.Query()["date"]
+	getEvents := calendar.NewGetEvents()
+	if !foundUser {
 		s.response(false, w, errInput.Error(), http.StatusBadRequest)
 		return
 	}
-	event, err := s.calendar.GetEvent(eventUID)
-	if err != nil {
-		s.response(false, w, err.Error(), http.StatusBadRequest)
+	getEvents.UserUID = userRaw[0]
+	if !foundDate {
+		eves := s.calendar.GetDayEvents(getEvents)
+		s.response(true, w, eves, http.StatusOK)
 		return
 	}
-	s.response(true, w, event, http.StatusOK)
+	date, err := time.Parse("2006-01-02", dateRaw[0])
+	if err != nil {
+		s.response(false, w, errDate.Error(), http.StatusBadRequest)
+		return
+	}
+	getEvents.Date = date
+	getEvents.DateIn = true
+	eves := s.calendar.GetDayEvents(getEvents)
+	s.response(true, w, eves, http.StatusOK)
 }
 
-func (s *Server) dayEvent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) weekEvents(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		s.response(false, w, errMethod.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	//user, foundUser := r.URL.Query()["user_uid"]
-	eventRaw, foundEvent := r.URL.Query()["event_uid"]
-	eventUID := eventRaw[0]
-	if !foundEvent {
+	userRaw, foundUser := r.URL.Query()["user_id"]
+	dateRaw, foundDate := r.URL.Query()["date"]
+	getEvents := calendar.NewGetEvents()
+	if !foundUser {
 		s.response(false, w, errInput.Error(), http.StatusBadRequest)
 		return
 	}
-	event, err := s.calendar.GetEvent(eventUID)
-	if err != nil {
-		s.response(false, w, err.Error(), http.StatusBadRequest)
+	getEvents.UserUID = userRaw[0]
+	if !foundDate {
+		eves := s.calendar.GetWeekEvents(getEvents)
+		s.response(true, w, eves, http.StatusOK)
 		return
 	}
-	s.response(true, w, event, http.StatusOK)
+	date, err := time.Parse("2006-01-02", dateRaw[0])
+	if err != nil {
+		s.response(false, w, errDate.Error(), http.StatusBadRequest)
+		return
+	}
+	getEvents.Date = date
+	getEvents.DateIn = true
+	eves := s.calendar.GetWeekEvents(getEvents)
+	s.response(true, w, eves, http.StatusOK)
+}
+func (s *Server) monthEvents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.response(false, w, errMethod.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	userRaw, foundUser := r.URL.Query()["user_id"]
+	dateRaw, foundDate := r.URL.Query()["date"]
+	getEvents := calendar.NewGetEvents()
+	if !foundUser {
+		s.response(false, w, errInput.Error(), http.StatusBadRequest)
+		return
+	}
+	getEvents.UserUID = userRaw[0]
+	if !foundDate {
+		eves := s.calendar.GetMonthEvents(getEvents)
+		s.response(true, w, eves, http.StatusOK)
+		return
+	}
+	date, err := time.Parse("2006-01-02", dateRaw[0])
+	if err != nil {
+		s.response(false, w, errDate.Error(), http.StatusBadRequest)
+		return
+	}
+	getEvents.Date = date
+	getEvents.DateIn = true
+	eves := s.calendar.GetMonthEvents(getEvents)
+	s.response(true, w, eves, http.StatusOK)
 }
