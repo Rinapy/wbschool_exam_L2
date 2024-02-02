@@ -79,12 +79,12 @@ func (c *Calendar) GetEvent(UID string) (*Event, error) {
 	return nil, &EventNotFound{}
 }
 
-func (c *Calendar) CreateEvent(e *Event) (string, error) {
+func (c *Calendar) CreateEvent(e *Event) string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	UID := c.UIDGen()
 	c.events[UID] = e
-	return UID, nil
+	return UID
 
 }
 

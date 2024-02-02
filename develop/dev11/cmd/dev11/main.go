@@ -1,13 +1,11 @@
-package cmd
+package main
 
 import (
 	"dev11/internal/dev11/server"
-	"os"
 )
 
-func StartServer() chan os.Signal {
+func main() {
 	cfg := server.DefaultCfg()
 	s := server.NewServer(cfg)
-	sigint := s.Run()
-	return sigint
+	s.Run()
 }

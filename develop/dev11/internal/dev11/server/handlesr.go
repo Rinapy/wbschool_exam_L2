@@ -45,11 +45,7 @@ func (s *Server) addEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	event := eventRaw.convertToEvent()
-	uid, err := s.calendar.CreateEvent(event)
-	if err != nil {
-		s.response(false, w, errServer.Error(), http.StatusInternalServerError)
-		return
-	}
+	uid := s.calendar.CreateEvent(event)
 	s.response(true, w, struct {
 		UID string `json:"uid"`
 	}{UID: uid}, http.StatusOK)

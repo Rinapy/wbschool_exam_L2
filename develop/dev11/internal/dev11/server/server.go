@@ -48,7 +48,7 @@ func (s *Server) runServer(err chan error) {
 }
 
 // Run запускает сервер
-func (s *Server) Run() chan os.Signal {
+func (s *Server) Run() {
 	s.handle()
 	sigint := make(chan os.Signal)
 	errors := make(chan error)
@@ -62,9 +62,8 @@ func (s *Server) Run() chan os.Signal {
 	select {
 	case <-sigint:
 		log.Println("server stopped")
-		return nil
+		return
 	case err := <-errors:
 		log.Println(err)
 	}
-	return sigint
 }
