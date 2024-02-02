@@ -1,5 +1,7 @@
 package main
 
+import cmd "dev11/cmd/dev11"
+
 /*
 === HTTP server ===
 
@@ -23,5 +25,5 @@ package main
 */
 
 func main() {
-
+	cmd.StartServer()
 }
