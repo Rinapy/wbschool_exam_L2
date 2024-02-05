@@ -22,27 +22,28 @@ import (
 */
 
 type Wget struct {
-	domain    string
-	savePath  string
-	transport *http.Transport
-	urlArr    map[string]bool
-	mu        *sync.RWMutex
-	wg        *sync.WaitGroup
+	domain      string
+	savePath    string
+	transport   *http.Transport
+	urlArr      map[string]bool
+	mu          *sync.RWMutex
+	wg          *sync.WaitGroup
+	rateLimiter <-chan time.Time
 }
 
-func NewWget(domain string, savePath string) *Wget {
+func NewWget(domain string, savePath string, rps int) *Wget {
 	return &Wget{
 		domain:   domain,
 		savePath: savePath,
 		transport: &http.Transport{
-			MaxConnsPerHost:    25,
 			MaxIdleConns:       5,
 			IdleConnTimeout:    25 * time.Second,
 			DisableCompression: true,
 		},
-		urlArr: make(map[string]bool),
-		mu:     &sync.RWMutex{},
-		wg:     &sync.WaitGroup{},
+		urlArr:      make(map[string]bool),
+		mu:          &sync.RWMutex{},
+		wg:          &sync.WaitGroup{},
+		rateLimiter: time.Tick(time.Second / 10),
 	}
 }
 
@@ -107,6 +108,7 @@ func (w *Wget) GetURL(url string) ([]byte, error) {
 		Timeout:   time.Second * 30,
 	}
 	response, err := client.Get(url)
+
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +192,8 @@ func (w *Wget) GetSite() {
 
 func (w *Wget) ProcessPage(url string) {
 	defer w.wg.Done()
+	<-w.rateLimiter
+	log.Println("Делаю запрос к ", url)
 	page, err := w.GetURL(url)
 	w.SetInspected(url)
 	if err != nil {
@@ -210,9 +214,11 @@ func (w *Wget) ProcessPage(url string) {
 func main() {
 	var domain string
 	var savePath string
+	var rps int
 	flag.StringVar(&domain, "url", "", "базовый url сайта в формате https://site.su")
 	flag.StringVar(&savePath, "path", "site", "папка для сохранения")
+	flag.IntVar(&rps, "rps", 10, "папка для сохранения")
 	flag.Parse()
-	wget := NewWget(domain, savePath)
+	wget := NewWget(domain, savePath, rps)
 	wget.Run()
 }
