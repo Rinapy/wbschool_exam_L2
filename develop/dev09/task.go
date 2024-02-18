@@ -29,9 +29,11 @@ type Wget struct {
 	mu          *sync.RWMutex
 	wg          *sync.WaitGroup
 	rateLimiter <-chan time.Time
+	deep        int
+	curDeep     int
 }
 
-func NewWget(domain string, savePath string, rps int) *Wget {
+func NewWget(domain string, savePath string, rps int, deep int) *Wget {
 	return &Wget{
 		domain:   domain,
 		savePath: savePath,
@@ -43,7 +45,9 @@ func NewWget(domain string, savePath string, rps int) *Wget {
 		urlArr:      make(map[string]bool),
 		mu:          &sync.RWMutex{},
 		wg:          &sync.WaitGroup{},
-		rateLimiter: time.Tick(time.Second / 10),
+		rateLimiter: time.Tick(time.Second / time.Duration(rps)),
+		deep:        deep,
+		curDeep:     1,
 	}
 }
 
@@ -121,6 +125,12 @@ func (w *Wget) GetURL(url string) ([]byte, error) {
 }
 
 func (w *Wget) ParseLinks(page string) []string {
+	if w.deep == w.curDeep {
+		return []string{}
+	}
+	w.mu.Lock()
+	w.curDeep++
+	w.mu.Unlock()
 	invalidContains := []string{"https://", "http://", "ftp://", "www.", "mailto:"}
 
 	r := regexp.MustCompile(`href="(.*?)"`)
@@ -212,13 +222,18 @@ func (w *Wget) ProcessPage(url string) {
 }
 
 func main() {
-	var domain string
-	var savePath string
-	var rps int
+	var (
+		domain   string
+		savePath string
+		rps      int
+		deep     int
+	)
+
 	flag.StringVar(&domain, "url", "", "базовый url сайта в формате https://site.su")
 	flag.StringVar(&savePath, "path", "site", "папка для сохранения")
+	flag.IntVar(&deep, "deep", 1, "папка для сохранения")
 	flag.IntVar(&rps, "rps", 10, "папка для сохранения")
 	flag.Parse()
-	wget := NewWget(domain, savePath, rps)
+	wget := NewWget(domain, savePath, rps, deep)
 	wget.Run()
 }
