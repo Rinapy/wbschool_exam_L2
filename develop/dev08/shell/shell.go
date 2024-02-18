@@ -2,6 +2,7 @@ package shell
 
 import (
 	"bufio"
+	"dev08/netcat"
 	"fmt"
 	"github.com/shirou/gopsutil/process"
 	"os"
@@ -116,8 +117,24 @@ func (s *Shell) runCommand(command string) error {
 				fmt.Printf("Имя: %s, PID: %d, PPID: %d, Пользователь: %s\n", name, pid, ppid, username)
 			}
 		}
+	case "exec":
+		if err := s.exec(c); err != nil {
+			return err
+		}
+	case "nc":
+		if err := s.netcat(c[1:]); err != nil {
+			return err
+		}
 	default:
 		return &UnknownCommand{}
+	}
+	return nil
+}
+
+func (s *Shell) netcat(args []string) error {
+	nc := netcat.NewNC(os.Stdin)
+	if err := nc.Run(args); err != nil {
+		return err
 	}
 	return nil
 }
@@ -172,5 +189,19 @@ func (s *Shell) dirChange(path string) error {
 		return err
 	}
 	s.wd, _ = os.Getwd()
+	return nil
+}
+
+func (s *Shell) exec(args []string) error {
+	if len(args) > 0 {
+		name := args[0]
+		arg := strings.Join(args[1:], " ")
+		cmd := exec.Command(name, arg)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	} else {
+		return &NoExec{}
+	}
 	return nil
 }
