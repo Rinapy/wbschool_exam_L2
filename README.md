@@ -10,3 +10,27 @@
 Можно задавать вопросы, как по условию задач, так и об их решении.
 
 Для задач на разработку (/develop) все тест-кейсы должны быть оформлены в виде отдельных тестов.
+
+### Dev01
+ - golint - ok
+ - go test - none
+
+### Dev02
+ - golint - ok
+ - go test - pass
+
+### Dev03
+ - golint - ok
+ - go test - pass
+
+### Dev04
+- golint - ok
+- go test - pass
+
+### Dev05
+- golint - ok
+- go test - pass
+
+### Dev06
+- golint - ok
+- go test - pass

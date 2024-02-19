@@ -53,17 +53,20 @@ var (
 	spliter         = "---------------------------%v---------------------------\n"
 )
 
+// Line тип описывающий строку
 type Line struct {
 	Text string
 }
 type lineSlice []Line
 
+// File тип описывающий файл
 type File struct {
 	name    string
 	lines   lineSlice
 	findStr []int
 }
 
+// FileSlice тип описывающий срез File
 type FileSlice []File
 
 func parseFlags() {
@@ -276,6 +279,8 @@ func finder(fileSlice FileSlice, text string) (FileSlice, error) {
 	}
 	return nil, ErrNoLinesFound
 }
+
+// Find функции фасад для доступа к поиску по файлам
 func Find() {
 	parseFlags()
 	fsn, err := parseNameOrPattern(nameOrPattern)

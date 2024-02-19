@@ -12,7 +12,6 @@ import (
 )
 
 func TestInitFunc(t *testing.T) {
-	fmt.Println("Testing init function")
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = []string{"cmd", "-A", "2", "-B", "2", "-C", "3", "-i", "-v", "-F", "-n", "Искомое", "input_1.txt"} // Пример аргументов командной строки "-B", "2", "-C", "3", "-i", "-v", "-F", "-n",
 	// Проверка результатов
@@ -53,7 +52,6 @@ func TestInitFunc(t *testing.T) {
 }
 
 func TestParseNameOrPatternFunc(t *testing.T) {
-	fmt.Println("Testing parseNameOrPattern function")
 	tests := []struct {
 		name    string
 		arg     []string
@@ -89,7 +87,6 @@ func TestParseNameOrPatternFunc(t *testing.T) {
 		flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 		os.Args = tt.arg
 		parseFlags()
-		fmt.Println(tt.name)
 		fsn, err := parseNameOrPattern(flag.Arg(1))
 		if !errors.Is(err, tt.wantErr) {
 			t.Errorf("parseNameOrPattern error = %v, want.err %v", err, tt.wantErr)
@@ -104,7 +101,6 @@ func TestParseNameOrPatternFunc(t *testing.T) {
 }
 
 func TestReadLinesFunc(t *testing.T) {
-	fmt.Println("Testing readLines function")
 	files := []string{"./testfiles/input_1.txt", "./testfiles/input_2.txt"}
 	expected := []lineSlice{
 		{
@@ -142,7 +138,6 @@ func TestReadLinesFunc(t *testing.T) {
 }
 
 func TestFillFileSliceFunc(t *testing.T) {
-	fmt.Println("Testing fillFileSlice function")
 	files := []string{"./testfiles/input_1.txt", "./testfiles/input_2.txt"}
 	expected := FileSlice{
 		File{
@@ -283,7 +278,6 @@ func TestFinderFunc(t *testing.T) {
 		os.Args = tt.arg
 		parseFlags()
 		fmt.Println(tt.name)
-
 		fs, err := finder(tt.data, searchStr)
 		if !errors.Is(err, tt.wantErr) {
 			t.Errorf("finder error = %v, want.err %v", err, tt.wantErr)
@@ -299,7 +293,6 @@ func TestFinderFunc(t *testing.T) {
 }
 
 func TestPrinterFunc(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		arg     []string

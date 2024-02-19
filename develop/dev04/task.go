@@ -24,13 +24,13 @@ import (
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
-// FindAnagrams
+// FindAnagrams функция поиска анаграмм
 func FindAnagrams(words []string) map[string][]string {
 	anagrams := make(map[string][]string)
 	// Проходим по каждому слову в словаре
 	for _, word := range words {
 		// Приводим слово к нижнему регистру и сортируем его символы
-		word := strings.ToLower(word)
+		word = strings.ToLower(word)
 		sortedWord := sortWord(word)
 		// Добавляем отсортированное слово в мапу анаграмм
 		// Если уже есть множество анаграмм с таким ключом, добавляем слово в массив анаграмм

@@ -24,7 +24,7 @@ import (
 Функция должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
-// ErrIncorrectString описывает ошибку, возникающую при передачи некорректной строки.
+// ErrIncorrectString описывает ошибку, возникающую при передачах некорректных строк.
 var ErrIncorrectString = errors.New("incorrect string passed")
 
 /*

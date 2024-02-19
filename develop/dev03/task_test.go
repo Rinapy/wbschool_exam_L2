@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -12,7 +11,6 @@ import (
 )
 
 func TestFillNewFile(t *testing.T) {
-	fmt.Println("Testing fillNewFile function")
 	slice := LineSlice{
 		Line{[]string{"Field1", "Field2", "Field3"}},
 		Line{[]string{"Value1", "Value2"}},
@@ -56,7 +54,6 @@ func TestFillNewFile(t *testing.T) {
 }
 
 func TestFillLineSlice(t *testing.T) {
-	fmt.Println("Testing fillLineSlice function")
 	expectedSlice := LineSlice{
 		Line{[]string{"Field1", "Field2", "Field3"}},
 		Line{[]string{"Value1", "Value2"}},
@@ -92,7 +89,6 @@ func TestFillLineSlice(t *testing.T) {
 }
 
 func TestParseFlags(t *testing.T) {
-	fmt.Println("Testing parseFlags function")
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = []string{"cmd", "-k", "1", "-n", "-r", "-u", "input.txt"} // Пример аргументов командной строки
 
@@ -125,7 +121,6 @@ func TestParseFlags(t *testing.T) {
 }
 
 func TestSorter(t *testing.T) {
-	fmt.Println("Testing Sorter function")
 	tests := []struct {
 		name    string
 		arg     []string
@@ -187,20 +182,19 @@ func TestSorter(t *testing.T) {
 			name:    "Ошибка сортировки по выходу за пределы доступных k",
 			arg:     []string{"cmd", "-k", "23", "./testfiles/test.txt"},
 			want:    nil,
-			wantErr: ErrIndexFile,
+			wantErr: &ErrIndexFile{},
 		},
 		{
 			name:    "Ошибка отсутствуя переданного файла",
 			arg:     []string{"cmd", "input.txt"},
 			want:    nil,
-			wantErr: ErrOpenFile,
+			wantErr: &ErrOpenFile{},
 		},
 	}
 	for _, tt := range tests {
 		flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 		os.Args = tt.arg
 		lineSlice, err := Sorter()
-		fmt.Println(tt.name)
 		if !errors.Is(err, tt.wantErr) {
 			t.Errorf("Sorter() error = %v, want.err %v", err, tt.wantErr)
 			return

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"io"
 	"log"
@@ -42,16 +41,13 @@ var (
 	n, r, u   bool
 	inputFile string
 )
-var ErrCloseFile = errors.New("не удалось закрыть файл")
-var ErrOpenFile = errors.New("не удалось открыть файл")
-var ErrReadFile = errors.New("не удалось прочитать файл или строку")
-var ErrWriteFile = errors.New("не удалось прочитать файл или строку")
-var ErrIndexFile = errors.New("в файле нет колонки с таким индексом")
 
+// Line тип описывающий строку
 type Line struct {
 	Fields []string
 }
 
+// LineSlice тип среза Line
 type LineSlice []Line
 
 func (ls *LineSlice) Len() int {
@@ -102,11 +98,12 @@ func (ls *LineSlice) delDuplicate() {
 	}
 }
 
+// Sorter Функция сортировки
 func Sorter() (*LineSlice, error) {
 	parseFlags()
 	lines, err := fillLineSlice(inputFile)
 	if k > lines.Len() {
-		return nil, ErrIndexFile
+		return nil, &ErrIndexFile{}
 	}
 	if err != nil {
 		log.Println(err)
@@ -137,29 +134,29 @@ func parseFlags() string {
 func fillNewFile(slice *LineSlice) error {
 	file, err := os.Create("output.txt")
 	if err != nil {
-		return ErrOpenFile
+		return &ErrOpenFile{}
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Fatal(ErrCloseFile)
+			log.Fatal(&ErrCloseFile{})
 		}
 	}()
 
 	writer := bufio.NewWriter(file)
 	defer func() {
 		if err := writer.Flush(); err != nil {
-			log.Fatal(ErrWriteFile)
+			log.Fatal(&ErrWriteFile{})
 		}
 	}()
 
 	for _, v := range *slice {
 		_, err := writer.WriteString(strings.Join(v.Fields, " "))
 		if err != nil {
-			return ErrWriteFile
+			return &ErrWriteFile{}
 		}
 		_, err = writer.WriteString("\n")
 		if err != nil {
-			return ErrWriteFile
+			return &ErrWriteFile{}
 		}
 	}
 
@@ -170,7 +167,7 @@ func fillLineSlice(filename string) (*LineSlice, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		return &LineSlice{}, ErrOpenFile
+		return &LineSlice{}, &ErrOpenFile{}
 	}
 	reader := bufio.NewReader(file)
 	lineSlice := make(LineSlice, 0)
@@ -179,7 +176,7 @@ func fillLineSlice(filename string) (*LineSlice, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Println(ErrReadFile)
+			log.Println(&ErrReadFile{})
 		}
 
 		line := Line{strings.Fields(lineText)}
