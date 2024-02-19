@@ -64,7 +64,10 @@ func (w *Wget) SetInspected(url string) {
 }
 
 func (w *Wget) Run() {
-	os.Mkdir(w.savePath, os.ModePerm)
+	err := os.Mkdir(w.savePath, os.ModePerm)
+	if err != nil {
+		log.Fatalf("error make dir: %s", err.Error())
+	}
 	w.AddURL(w.domain)
 	w.GetSite()
 }
