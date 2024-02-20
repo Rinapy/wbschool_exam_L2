@@ -49,7 +49,7 @@ func ParseFlag() (*Config, []line) {
 	flag.StringVar(&f, "f", "1", "индексы или интервал столбцов которые будут выведены")
 	flag.StringVar(&cfg.d, "d", ":", "разделитель который используется для разделения столбцов")
 	flag.StringVar(&cfg.ld, "ld", " ", "разделитель который используется для разделения строк")
-	flag.BoolVar(&cfg.s, "s", true, "выводит строки в котором есть хотя бы один разделитель")
+	flag.BoolVar(&cfg.s, "s", false, "выводит строки в котором есть хотя бы один разделитель")
 	flag.Parse()
 	err := cfg.parseF(f)
 	if err != nil {
@@ -67,10 +67,17 @@ func (c *Config) ParseData() ([]line, error) {
 	if strLines == "" {
 		return []line{}, &DataNotFound{}
 	}
+
 	lines := strings.Split(strLines, c.ld)
 	data := make(lineSlice, len(lines))
 	for i := 0; i != len(lines); i++ {
-		data[i].text = lines[i]
+		if c.s {
+			if strings.Contains(lines[i], c.d) {
+				data[i].text = lines[i]
+			}
+		} else {
+			data[i].text = lines[i]
+		}
 	}
 	return data, nil
 }
