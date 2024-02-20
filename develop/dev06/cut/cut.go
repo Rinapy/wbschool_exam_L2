@@ -1,10 +1,9 @@
 package cut
 
 import (
-	"database/sql"
 	"flag"
+	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -21,12 +20,6 @@ import (
 
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
-
-var (
-	f string
-	d string
-	s bool
-)
 
 type Config struct {
 	f  []int
@@ -50,28 +43,27 @@ type line struct {
 
 type lineSlice []line
 
-
 func ParseFlag() (*Config, []line) {
 	cfg := NewCfg()
-
-	f := flag.String("f", "1", "индексы или интервал столбцов которые будут выведены")
+	var f string
+	flag.StringVar(&f, "f", "1", "индексы или интервал столбцов которые будут выведены")
 	flag.StringVar(&cfg.d, "d", ":", "разделитель который используется для разделения столбцов")
-	flag.StringVar(&cfg.ld, "ld", "\t", "разделитель который используется для разделения строк")
+	flag.StringVar(&cfg.ld, "ld", " ", "разделитель который используется для разделения строк")
 	flag.BoolVar(&cfg.s, "s", true, "выводит строки в котором есть хотя бы один разделитель")
 	flag.Parse()
-	err := cfg.parseF(*f)
+	err := cfg.parseF(f)
 	if err != nil {
 		log.Fatal(err)
 	}
-	lineSlice, err := cfg.ParseData()
+	ls, err := cfg.ParseData()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return cfg, lineSlice
+	return cfg, ls
 }
 
 func (c *Config) ParseData() ([]line, error) {
-	strLines := os.Args[1]
+	strLines := flag.Arg(0)
 	if strLines == "" {
 		return []line{}, &DataNotFound{}
 	}
@@ -114,15 +106,28 @@ func (c *Config) parseF(f string) error {
 		}
 		return nil
 	}
+	index, err := strconv.Atoi(f)
+	if err != nil {
+		return &IndexValueError{}
+	}
+	c.f = make([]int, 1)
+	c.f[0] = index - 1
 	return nil
 }
 
-func (a *CutApp) Run()  {
+func (a *CutApp) Run() {
 	outData := make(lineSlice, 0)
-	for lineIndex, l := range a.Line{
+	for _, l := range a.Line {
 		rows := strings.Split(l.text, a.Cfg.d)
-		for _, rowIndex := range a.Cfg.f{if lineIndex == rowIndex{
-				outData[lineIndex] = rows[rowIndex]
+		outLine := make([]string, 0)
+		for _, needIndex := range a.Cfg.f {
+			if needIndex < len(rows) {
+				outLine = append(outLine, rows[needIndex])
+			}
 		}
+		outData = append(outData, line{text: strings.Join(outLine, a.Cfg.d)})
+	}
+	for _, v := range outData {
+		fmt.Println(v.text)
 	}
 }

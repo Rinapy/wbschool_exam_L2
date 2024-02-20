@@ -2,17 +2,16 @@ package main
 
 import (
 	"dev06/cut"
-	"fmt"
 )
 
 func main() {
-	_, data := cut.ParseFlag()
-	fmt.Println(data)
+	cfg, data := cut.ParseFlag()
 
-	//c := cut.CutApp{
-	//	Cfg:  cfg,
-	//	Line: data,
-	//}
+	c := cut.CutApp{
+		Cfg:  cfg,
+		Line: data,
+	}
+	c.Run()
 	//if res, err := cut.parseF("1-8"); err != nil {
 	//	fmt.Println(err)
 	//} else {

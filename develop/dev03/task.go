@@ -144,13 +144,13 @@ func fillNewFile(slice *LineSlice) error {
 
 	writer := bufio.NewWriter(file)
 	defer func() {
-		if err := writer.Flush(); err != nil {
+		if err = writer.Flush(); err != nil {
 			log.Fatal(&ErrWriteFile{})
 		}
 	}()
 
 	for _, v := range *slice {
-		_, err := writer.WriteString(strings.Join(v.Fields, " "))
+		_, err = writer.WriteString(strings.Join(v.Fields, " "))
 		if err != nil {
 			return &ErrWriteFile{}
 		}
