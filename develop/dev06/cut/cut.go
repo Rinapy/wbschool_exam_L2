@@ -43,7 +43,7 @@ type line struct {
 
 type lineSlice []line
 
-func ParseFlag() (*Config, []line) {
+func NewApp() (*CutApp, error) {
 	cfg := NewCfg()
 	var f string
 	flag.StringVar(&f, "f", "1", "индексы или интервал столбцов которые будут выведены")
@@ -55,28 +55,31 @@ func ParseFlag() (*Config, []line) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ls, err := cfg.ParseData()
+	strLines := flag.Arg(0)
+	ls, err := cfg.parseData(strLines)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return cfg, ls
+
+	return &CutApp{
+		Cfg:  cfg,
+		Line: ls,
+	}, nil
 }
 
-func (c *Config) ParseData() ([]line, error) {
-	strLines := flag.Arg(0)
+func (c *Config) parseData(strLines string) (lineSlice, error) {
 	if strLines == "" {
-		return []line{}, &DataNotFound{}
+		return nil, &DataNotFound{}
 	}
-
 	lines := strings.Split(strLines, c.ld)
 	data := make(lineSlice, len(lines))
 	for i := 0; i != len(lines); i++ {
 		if c.s {
 			if strings.Contains(lines[i], c.d) {
-				data[i].text = lines[i]
+				data[i] = line{lines[i]}
 			}
 		} else {
-			data[i].text = lines[i]
+			data[i] = line{lines[i]}
 		}
 	}
 	return data, nil
@@ -115,6 +118,9 @@ func (c *Config) parseF(f string) error {
 	}
 	index, err := strconv.Atoi(f)
 	if err != nil {
+		return &IndexValueError{}
+	}
+	if index <= 0 {
 		return &IndexValueError{}
 	}
 	c.f = make([]int, 1)
