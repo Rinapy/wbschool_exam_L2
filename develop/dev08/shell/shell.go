@@ -26,10 +26,12 @@ import (
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
+// Shell структура описывающая шелл
 type Shell struct {
 	wd string
 }
 
+// NewShell функция создания экземпляра шелла
 func NewShell() *Shell {
 	wd, _ := os.Getwd()
 	return &Shell{
@@ -47,6 +49,7 @@ func (s *Shell) readInput() (string, error) {
 	return input, nil
 }
 
+// RunShell функция запуска шелла
 func (s *Shell) RunShell() {
 	for {
 		fmt.Printf("%s > ", s.wd)
@@ -106,16 +109,16 @@ func (s *Shell) runCommand(command string) error {
 			fmt.Println(proc + " killed")
 		}
 	case "ps":
-		if pl, err := s.ps(); err != nil {
+		pl, err := s.ps()
+		if err != nil {
 			return err
-		} else {
-			for _, p := range pl {
-				name, _ := p.Name()
-				pid := p.Pid
-				ppid := p.Ppid
-				username, _ := p.Username()
-				fmt.Printf("Имя: %s, PID: %d, PPID: %d, Пользователь: %s\n", name, pid, ppid, username)
-			}
+		}
+		for _, p := range pl {
+			name, _ := p.Name()
+			pid := p.Pid
+			ppid := p.Ppid
+			username, _ := p.Username()
+			fmt.Printf("Имя: %s, PID: %d, PPID: %d, Пользователь: %s\n", name, pid, ppid, username)
 		}
 	case "exec":
 		if err := s.exec(c); err != nil {

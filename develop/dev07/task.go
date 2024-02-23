@@ -80,7 +80,10 @@ func or(channels ...<-chan interface{}) <-chan interface{} {
 }
 
 func main() {
-	// Функция sig создает канал, который закроется после заданного времени
+	//Определение функции:
+	var or func(channels ...<-chan interface{}) <-chan interface{}
+
+	//Пример использования функции:
 	sig := func(after time.Duration) <-chan interface{} {
 		c := make(chan interface{})
 		go func() {
@@ -90,18 +93,14 @@ func main() {
 		return c
 	}
 
-	// Замеряется время начала выполнения
 	start := time.Now()
-
-	// Используется or для ожидания закрытия одного из каналов
 	<-or(
 		sig(2*time.Hour),
 		sig(5*time.Minute),
-		sig(60*time.Second),
+		sig(1*time.Second),
 		sig(1*time.Hour),
 		sig(1*time.Minute),
 	)
 
-	// Выводится время, прошедшее с начала выполнения
-	fmt.Printf("Done after %v", time.Since(start))
+	fmt.Printf("fone after %v", time.Since(start))
 }

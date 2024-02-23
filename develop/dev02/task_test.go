@@ -1,9 +1,6 @@
 package main
 
-import (
-	"errors"
-	"testing"
-)
+import "testing"
 
 func TestUnzipStr(t *testing.T) {
 	tests := []struct {
@@ -12,6 +9,7 @@ func TestUnzipStr(t *testing.T) {
 		want    string
 		wantErr error
 	}{
+		// TODO: Add test cases.
 		{
 			name:    "err case два числа подряд",
 			arg:     "a2b45cd",
@@ -94,7 +92,11 @@ func TestUnzipStr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := UnzipStr(tt.arg)
-			if !errors.Is(err, tt.wantErr) {
+			// log.Println("arg:", tt.arg)
+			// log.Println("got:", got)
+			// log.Println("expected:", tt.want)
+			// log.Println()
+			if err != tt.wantErr {
 				t.Errorf("UnzipStr() error = %v, want.err %v", err, tt.wantErr)
 				return
 			}

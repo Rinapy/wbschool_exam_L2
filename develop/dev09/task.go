@@ -21,6 +21,7 @@ import (
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
+// Wget структура описывающая структуру софтину
 type Wget struct {
 	domain      string
 	savePath    string
@@ -33,6 +34,7 @@ type Wget struct {
 	curDeep     int
 }
 
+// NewWget функция создания экземпляра Wget
 func NewWget(domain string, savePath string, rps int, deep int) *Wget {
 	return &Wget{
 		domain:   domain,
@@ -51,32 +53,33 @@ func NewWget(domain string, savePath string, rps int, deep int) *Wget {
 	}
 }
 
-func (w *Wget) AddURL(url string) {
+func (w *Wget) addURL(url string) {
 	w.mu.Lock()
 	w.urlArr[url] = false
 	w.mu.Unlock()
 }
 
-func (w *Wget) SetInspected(url string) {
+func (w *Wget) setInspected(url string) {
 	w.mu.Lock()
 	w.urlArr[url] = true
 	w.mu.Unlock()
 }
 
+// Run функция запуска Wget
 func (w *Wget) Run() {
 	err := os.Mkdir(w.savePath, os.ModePerm)
 	if err != nil {
 		log.Fatalf("error make dir: %s", err.Error())
 	}
-	w.AddURL(w.domain)
-	w.GetSite()
+	w.addURL(w.domain)
+	w.getSite()
 }
 
-func (w *Wget) SavePage(url string, page []byte) (bool, error) {
-	if w.IsJunkPage(url) {
+func (w *Wget) savePage(url string, page []byte) (bool, error) {
+	if w.isJunkPage(url) {
 		return true, nil
 	}
-	dirPath, fileName := w.GetSavePathAndName(url)
+	dirPath, fileName := w.getSavePathAndName(url)
 	if dirPath != "" {
 		if err := os.MkdirAll(w.savePath+"/"+dirPath, os.ModePerm); err != nil {
 			return false, err
@@ -96,7 +99,7 @@ func (w *Wget) SavePage(url string, page []byte) (bool, error) {
 	return false, nil
 }
 
-func (w *Wget) IsJunkPage(url string) bool {
+func (w *Wget) isJunkPage(url string) bool {
 	if strings.Contains(url, "?") {
 		return true
 	}
@@ -109,7 +112,7 @@ func (w *Wget) IsJunkPage(url string) bool {
 	return false
 }
 
-func (w *Wget) GetURL(url string) ([]byte, error) {
+func (w *Wget) getURL(url string) ([]byte, error) {
 	client := http.Client{
 		Transport: w.transport,
 		Timeout:   time.Second * 30,
@@ -127,7 +130,7 @@ func (w *Wget) GetURL(url string) ([]byte, error) {
 	return buff, nil
 }
 
-func (w *Wget) ParseLinks(page string) []string {
+func (w *Wget) parseLinks(page string) []string {
 	if w.deep == w.curDeep {
 		return []string{}
 	}
@@ -164,7 +167,7 @@ func (w *Wget) ParseLinks(page string) []string {
 	return clearValidLinks
 }
 
-func (w *Wget) GetSavePathAndName(url string) (dir string, file string) {
+func (w *Wget) getSavePathAndName(url string) (dir string, file string) {
 	var dirtyPath string
 	if strings.Contains(url, w.domain) {
 		dirtyPath = strings.TrimPrefix(url, w.domain)
@@ -183,7 +186,7 @@ func (w *Wget) GetSavePathAndName(url string) (dir string, file string) {
 	return
 }
 
-func (w *Wget) GetSite() {
+func (w *Wget) getSite() {
 	var pageLen int
 	for {
 		pageLen = len(w.urlArr)
@@ -191,7 +194,7 @@ func (w *Wget) GetSite() {
 		for url, inspected := range w.urlArr {
 			if !inspected {
 				w.wg.Add(1)
-				go w.ProcessPage(url)
+				go w.processPage(url)
 			}
 		}
 		w.mu.RUnlock()
@@ -203,23 +206,23 @@ func (w *Wget) GetSite() {
 	w.transport.CloseIdleConnections()
 }
 
-func (w *Wget) ProcessPage(url string) {
+func (w *Wget) processPage(url string) {
 	defer w.wg.Done()
 	<-w.rateLimiter
 	log.Println("Делаю запрос к ", url)
-	page, err := w.GetURL(url)
-	w.SetInspected(url)
+	page, err := w.getURL(url)
+	w.setInspected(url)
 	if err != nil {
 		log.Printf("(Get URL): не удалось загрузить страницу %s error: %s\n", url, err.Error())
 	}
-	isJunk, err := w.SavePage(url, page)
+	isJunk, err := w.savePage(url, page)
 	if err != nil {
 		log.Printf("(Save page): не удалось сохранить страницу %s error: %s\n", url, err.Error())
 	}
 	if !isJunk {
-		links := w.ParseLinks(string(page))
+		links := w.parseLinks(string(page))
 		for _, link := range links {
-			w.AddURL(link)
+			w.addURL(link)
 		}
 	}
 }

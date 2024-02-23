@@ -37,12 +37,14 @@ func main() {
 	t.Run()
 }
 
+// Config структура описывающая конфигурацию TelnetUtil
 type Config struct {
 	Timeout time.Duration // Период ожидания для подключения
 	Host    string        // Хост (адрес сервера)
 	Port    string        // Порт
 }
 
+// Configure функция возвращающая экземпляр Config
 func Configure() *Config {
 	c := &Config{}                                               // Создание нового объекта Config
 	flag.DurationVar(&c.Timeout, "timeout", 0, "telnet timeout") // Регистрация флага -timeout для периода ожидания
@@ -56,12 +58,14 @@ func Configure() *Config {
 	return c         // Возврат указателя на структуру Config
 }
 
+// TelnetUtil структура описывающая телнет утилиту
 type TelnetUtil struct {
 	config  *Config    // Конфигурация
 	conn    net.Conn   // Соединение
 	errorCh chan error // Канал для передачи ошибок
 }
 
+// NewTelnet функция возвращающая экземпляр TelnetUtil
 func NewTelnet(config *Config) *TelnetUtil {
 	return &TelnetUtil{
 		config:  config,           // Задание конфигурации
@@ -69,6 +73,7 @@ func NewTelnet(config *Config) *TelnetUtil {
 	}
 }
 
+// Run функция запуска телнета
 func (t *TelnetUtil) Run() {
 	t.connect()                                          // Установка соединения
 	sigint := make(chan os.Signal)                       // Создание канала для сигналов

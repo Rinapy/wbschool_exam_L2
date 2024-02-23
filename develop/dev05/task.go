@@ -81,6 +81,7 @@ func parseFlags() {
 	flag.Parse()
 	nameOrPattern = flag.Arg(1)
 	searchStr = flag.Arg(0)
+
 }
 
 func parseNameOrPattern(arg string) ([]string, error) {

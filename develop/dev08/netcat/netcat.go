@@ -36,36 +36,37 @@ func (nc *Netcat) Run(req []string) error {
 
 // TCP создает подключение по TCP
 func (nc *Netcat) TCP(url string) error {
-	if s, err := net.ResolveTCPAddr("tcp4", url); err != nil { // это чтоб localhost в 127.0.0.1 красиво превращался
+	s, err := net.ResolveTCPAddr("tcp4", url)
+	if err != nil { // это чтоб localhost в 127.0.0.1 красиво превращался
 		return err
-	} else {
-		if c, errD := net.DialTCP("tcp4", nil, s); err != nil { // создание соединения
-			return errD
-		} else {
-			defer c.Close() // отложенное закрытие соединения
-			nc.writer = c
-			if err = nc.session(); err != nil { // передача данных
-				return err
-			}
-		}
 	}
+	c, errD := net.DialTCP("tcp4", nil, s)
+	if err != nil { // создание соединения
+		return errD
+	}
+	defer c.Close() // отложенное закрытие соединения
+	nc.writer = c
+	if err = nc.session(); err != nil { // передача данных
+		return err
+	}
+
 	return nil
 }
 
 // UDP создает подключение по UDP
-func (nc *Netcat) UDP(url string) error { // тут все аналогично TCP()
-	if s, err := net.ResolveUDPAddr("udp4", url); err != nil {
+func (nc *Netcat) UDP(url string) error {
+	s, err := net.ResolveUDPAddr("udp4", url) // тут все аналогично TCP()
+	if err != nil {
 		return err
-	} else {
-		if c, errD := net.DialUDP("udp4", nil, s); err != nil {
-			return errD
-		} else {
-			defer c.Close()
-			nc.writer = c
-			if err = nc.session(); err != nil {
-				return err
-			}
-		}
+	}
+	c, errD := net.DialUDP("udp4", nil, s)
+	if err != nil {
+		return errD
+	}
+	defer c.Close()
+	nc.writer = c
+	if err = nc.session(); err != nil {
+		return err
 	}
 	return nil
 }
