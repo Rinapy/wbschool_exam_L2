@@ -45,8 +45,7 @@
 
 ### Dev09
 - golint - ok
-- go test - ok
-
+- go test - pass
 ### Dev10
 - golint - ok
 - go test - TODO
