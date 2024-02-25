@@ -99,7 +99,7 @@ func (w *Wget) savePage(url string, page []byte) (bool, error) {
 	return false, nil
 }
 
-func (w *Wget) isJunkPage(url string) bool {
+func (w *Wget) isJunkPage(url string) bool { // Test Ok
 	if strings.Contains(url, "?") {
 		return true
 	}
@@ -130,7 +130,7 @@ func (w *Wget) getURL(url string) ([]byte, error) {
 	return buff, nil
 }
 
-func (w *Wget) parseLinks(page string) []string {
+func (w *Wget) parseLinks(page string) []string { // Test Ok
 	if w.deep == w.curDeep {
 		return []string{}
 	}
@@ -161,13 +161,13 @@ func (w *Wget) parseLinks(page string) []string {
 			cleanLink = strings.Replace(cleanLink, "../", "", -1)
 			cleanLink = strings.Replace(cleanLink, "./", "", -1)
 			cleanLink = strings.TrimLeft(cleanLink, "/")
-			clearValidLinks = append(clearValidLinks, w.domain+"/"+cleanLink)
+			clearValidLinks = append(clearValidLinks, w.domain+cleanLink)
 		}
 	}
 	return clearValidLinks
 }
 
-func (w *Wget) getSavePathAndName(url string) (dir string, file string) {
+func (w *Wget) getSavePathAndName(url string) (dir string, file string) { // Test Ok
 	var dirtyPath string
 	if strings.Contains(url, w.domain) {
 		dirtyPath = strings.TrimPrefix(url, w.domain)
